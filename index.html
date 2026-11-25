@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Top Bins Tipping League</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Sticky top navigation (desktop) -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="#dashboard"><i class="fa-solid fa-futbol"></i><span id="brandName">Tipping League</span></a>
+      <nav class="nav nav--top" aria-label="Main"></nav>
+      <div class="club-pick">
+        <button class="icon-btn" id="clubBtn" aria-haspopup="true" aria-expanded="false" aria-label="Choose your club colours"></button>
+        <div class="club-menu" id="clubMenu" hidden></div>
+      </div>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle light or dark theme"><i class="fa-solid fa-moon"></i></button>
+    </div>
+  </header>
+
+  <main id="app">
+    <!-- 1. Dashboard -->
+    <section id="dashboard" class="view" aria-labelledby="h-dashboard">
+      <h1 id="h-dashboard" class="visually-hidden">Dashboard</h1>
+      <div class="banner">
+        <div>
+          <p class="banner__sub" id="seasonLabel"></p>
+          <h2 class="banner__title" id="gwTitle"></h2>
+          <button class="chip" id="jokerBtn"><i class="fa-solid fa-star"></i> <span></span></button>
+        </div>
+        <div class="countdown" aria-live="off">
+          <p class="countdown__label">Tips lock in</p>
+          <div class="countdown__grid" id="countdown"></div>
+        </div>
+      </div>
+      <div class="stats-grid stats-grid--dash" id="quickStats"></div>
+      <div class="two-col">
+        <div class="card"><h3 class="card__title">Top 3</h3><div id="podium"></div></div>
+        <div class="card"><h3 class="card__title">Recent activity</h3><ul class="feed" id="activity"></ul></div>
+      </div>
+    </section>
+
+    <!-- 2. Fixtures & predictions -->
+    <section id="fixtures" class="view" hidden aria-labelledby="h-fixtures">
+      <div class="section-head">
+        <h2 id="h-fixtures">Fixtures &amp; predictions</h2>
+        <span class="head-actions"><span class="lock-pill" id="lockPill"></span><button class="btn btn--ghost btn--sm" id="skipBtn" data-skip><i class="fa-solid fa-forward"></i> Demo: jump to kick-off</button></span>
+      </div>
+      <div class="seg" role="tablist">
+        <button class="seg__btn on" data-tab="round" data-group="fx">This round</button>
+        <button class="seg__btn" data-tab="upcoming" data-group="fx">Upcoming weeks</button>
+      </div>
+      <div data-panel="round" data-group="fx">
+        <div class="fixture-list" id="fixtureList"></div>
+        <div class="submit-bar">
+          <p id="submitMsg">Enter a score for every match.</p>
+          <button class="btn" id="submitBtn"><i class="fa-solid fa-paper-plane"></i> Submit predictions</button>
+        </div>
+      </div>
+      <div data-panel="upcoming" data-group="fx" hidden>
+        <div class="up-filter"><label for="teamFilter">Club</label><select id="teamFilter"></select><span class="note" id="tzNote"></span></div>
+        <div id="upcomingList"></div>
+      </div>
+    </section>
+
+    <!-- 3. Leaderboard -->
+    <section id="leaderboard" class="view" hidden aria-labelledby="h-lb">
+      <div class="section-head">
+        <h2 id="h-lb">Leaderboard</h2>
+        <button class="btn btn--ghost" id="simBtn"><i class="fa-solid fa-bolt"></i> Simulate live update</button>
+      </div>
+      <div class="seg" role="tablist">
+        <button class="seg__btn on" data-tab="players" data-group="lb">Players</button>
+        <button class="seg__btn" data-tab="pl" data-group="lb">Premier League table</button>
+      </div>
+      <div data-panel="players" data-group="lb"><div class="card card--flush"><ol class="table" id="lbTable"></ol></div></div>
+      <div data-panel="pl" data-group="lb" hidden>
+        <div class="card card--flush" id="plTable"></div>
+        <p class="note"><span class="zone zone--ucl"></span> Top 4 &nbsp; <span class="zone zone--rel"></span> Bottom 3. Snapshot after 10 matches each; connect a results API to keep it live.</p>
+      </div>
+    </section>
+
+    <!-- 4. Results -->
+    <section id="results" class="view" hidden aria-labelledby="h-res">
+      <div class="section-head">
+        <h2 id="h-res">Results</h2>
+        <div class="legend"><span><i class="fa-solid fa-circle-check ok"></i> Exact</span><span><i class="fa-solid fa-square dot-warn"></i> Result</span><span><i class="fa-solid fa-circle-xmark bad"></i> Miss</span></div>
+      </div>
+      <div class="seg" role="tablist">
+        <button class="seg__btn on" data-tab="mine" data-group="rs">My results</button>
+        <button class="seg__btn" data-tab="everyone" data-group="rs">Everyone's tips</button>
+      </div>
+      <div data-panel="mine" data-group="rs"><div id="resultsList"></div><p class="note">GW9–10 results are sample data.</p></div>
+      <div data-panel="everyone" data-group="rs" hidden><div class="pills" id="gwPills"></div><div id="allTips"></div></div>
+    </section>
+
+    <!-- 5. Statistics -->
+    <section id="stats" class="view" hidden aria-labelledby="h-stats">
+      <div class="section-head"><h2 id="h-stats">Statistics</h2></div>
+      <div class="stats-grid" id="statCards"></div>
+      <div class="card"><h3 class="card__title">Season performance</h3><div id="chart" class="chart"></div></div>
+    </section>
+  </main>
+
+  <!-- Bottom navigation (mobile) -->
+  <nav class="nav nav--bottom" aria-label="Main mobile"></nav>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
