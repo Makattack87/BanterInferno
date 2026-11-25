@@ -154,24 +154,42 @@ const FEED = `
 18 2026-12-30T20:15Z IPS CHE
 18 2026-12-30T20:15Z AVL LIV`;
 
-(function loadMockData() {
-  FEED.trim().split('\n').forEach((line, i) => {
-    const [gw, kickoff, home, away, rh, ra] = line.trim().split(' '), id = 'f' + (i + 1);
-    DB.fixtures.push({ id, gw: +gw, kickoff, home, away });
-    if (rh !== undefined) DB.results.push({ fixtureId: id, home: +rh, away: +ra });
-  });
-  DB.competition.deadline = Math.min(...DB.fixtures.filter(f => f.gw === DB.competition.gameweek).map(f => Date.parse(f.kickoff)));
-  // Seeded pseudo-random tips for every player (the current user's open-round tips live in state instead)
+function hydrateFromFixtures() {
+  const gw = DB.competition.gameweek;
+  DB.competition.deadline = Math.min(...DB.fixtures.filter(f => f.gw === gw).map(f => Date.parse(f.kickoff)));
+  DB.tips = [];
   let s = 42; const rnd = () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296;
   const goals = () => [0, 0, 1, 1, 1, 2, 2, 3][Math.floor(rnd() * 8)];
-  DB.fixtures.filter(f => f.gw <= DB.competition.gameweek).forEach(f => DB.users.forEach(u => {
-    if (u.id === DB.currentUserId && f.gw === DB.competition.gameweek) return;
+  DB.fixtures.filter(f => f.gw <= gw).forEach(f => DB.users.forEach(u => {
+    if (u.id === DB.currentUserId && f.gw === gw) return;
     DB.tips.push({ userId: u.id, fixtureId: f.id, home: goals(), away: goals() });
   }));
-})();
+}
 
-/* ---------- 2. Data access layer – replace internals with Firebase/Supabase calls ---------- */
+/* ---------- 2. Data access layer ---------- */
+const SUPABASE_URL = 'https://bxaqrqiqnhyfpqjtdqyn.supabase.co/rest/v1/';
+const SUPABASE_KEY = 'sb_publishable_OjceILHspZRsAtBu4vHbag_X2fZpnq6';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const fixtureFromRow = r => ({
+  id: String(r.id),
+  gw: r.gameweek,
+  kickoff: new Date(r.kickoff).toISOString(),
+  home: r.home,
+  away: r.away
+});
+
 const API = {
+  loadFixtures: async () => {
+    const { data, error } = await sb.from('fixtures')
+      .select('id, gameweek, kickoff, home, away, home_goals, away_goals')
+      .order('gameweek').order('kickoff').order('id');
+    if (error) throw error;
+    DB.fixtures = data.map(fixtureFromRow);
+    DB.results = data.filter(r => r.home_goals !== null && r.away_goals !== null)
+      .map(r => ({ fixtureId: String(r.id), home: r.home_goals, away: r.away_goals }));
+    return DB.fixtures;
+  },
   getFixtures: (gw) => DB.fixtures.filter(f => f.gw === gw),
   getLeaderboard: () => DB.leaderboard,
   getResults: () => DB.results,
@@ -597,16 +615,27 @@ function setTheme(t) {
 }
 
 /* ---------- 11. Init ---------- */
-function init() {
+async function init() {
   let saved; try { saved = localStorage.getItem('theme'); } catch (e) { }
   let team; try { team = localStorage.getItem('team'); } catch (e) { }
   state.team = THEMES[team] ? team : null; user(DB.currentUserId).favTeam = state.team;
   buildNav(); renderClubMenu(); setTheme(saved || 'dark'); renderClubButton();
+  $('#themeToggle').onclick = () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+
+  try {
+    await API.loadFixtures();
+    if (!API.getFixtures(DB.competition.gameweek).length) throw new Error(`No fixtures for GW${DB.competition.gameweek}`);
+    hydrateFromFixtures();
+  } catch (err) {
+    console.error('Could not load fixtures from Supabase:', err);
+    $('#app').innerHTML = '<p class="note" style="padding:24px">Couldn’t load fixtures. Please refresh to try again.</p>';
+    return;
+  }
+
   renderDashboard(); renderFixtures(); renderLeaderboard(); renderResults(); renderStats(); renderUpcoming(); renderTable(); renderAllTips();
   bindInteractions();
   tickCountdown(); setInterval(tickCountdown, 1000);
 
-  $('#themeToggle').onclick = () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
   $('#submitBtn').onclick = submitTips;
   $('#teamFilter').onchange = renderUpcoming;
   $('#simBtn').onclick = simulateUpdate;
