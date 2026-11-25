@@ -330,7 +330,6 @@ function bindInteractions() {
     }
     const gwPill = e.target.closest('[data-gw]');
     if (gwPill) { state.tipsGw = +gwPill.dataset.gw; renderAllTips(); return; }
-    if (e.target.closest('[data-skip]')) { toggleKickoffDemo(); return; }
     const pick = e.target.closest('[data-pick]');
     if (pick) { if (!pick.disabled) quickPick(pick); return; }
     const ex = e.target.closest('[data-expand]');
