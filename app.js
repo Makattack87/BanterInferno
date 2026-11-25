@@ -167,7 +167,7 @@ function hydrateFromFixtures() {
 }
 
 /* ---------- 2. Data access layer ---------- */
-const SUPABASE_URL = 'https://bxaqrqiqnhyfpqjtdqyn.supabase.co/rest/v1/';
+const SUPABASE_URL = 'https://bxaqrqiqnhyfpqjtdqyn.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OjceILHspZRsAtBu4vHbag_X2fZpnq6';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
