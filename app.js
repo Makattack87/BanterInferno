@@ -6,7 +6,7 @@
 
 /* ---------- 1. Data (shapes mirror future DB tables) ---------- */
 const DB = {
-  competition: { name: 'Top Bins Tipping League', season: '2026/27', gameweek: 11, deadline: 0 },  // deadline = first kick-off of the round (set below)
+  competition: { name: 'Top Bins Tipping League', season: '2026/27', gameweek: 12, deadline: 0 },  // deadline = first kick-off of the round (set below)
   currentUserId: 'u4',
   jokerAvailable: true,
   teams: {
