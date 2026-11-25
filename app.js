@@ -165,7 +165,21 @@ function hydrateFromFixtures() {
     DB.tips.push({ userId: u.id, fixtureId: f.id, home: goals(), away: goals() });
   }));
 }
-
+/** Overlay the user's saved tips: this round fills the open form, past rounds replace the sample tips */
+function applySavedTips(saved) {
+  const gw = DB.competition.gameweek;
+  saved.forEach(t => {
+    const f = fixture(t.fixtureId); if (!f) return;
+    if (f.gw === gw) {
+      state.tips[t.fixtureId] = { home: t.home, away: t.away };
+      state.submitted = true;
+      if (t.joker) state.joker = true;
+    } else {
+      const i = DB.tips.findIndex(x => x.userId === t.userId && x.fixtureId === t.fixtureId);
+      if (i >= 0) DB.tips[i] = t; else DB.tips.push(t);
+    }
+  });
+}
 /* ---------- 2. Data access layer ---------- */
 const SUPABASE_URL = 'https://bxaqrqiqnhyfpqjtdqyn.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OjceILHspZRsAtBu4vHbag_X2fZpnq6';
@@ -194,7 +208,33 @@ const API = {
   getLeaderboard: () => DB.leaderboard,
   getResults: () => DB.results,
   getMyTips: () => DB.tips.filter(t => t.userId === DB.currentUserId),
-  saveTips: async (tips, joker) => { Object.assign(state.tips, tips); state.joker = joker; return true; }
+
+  /** Anonymous sign-in: a real user id per browser, no login screen. The session persists in localStorage. */
+  ensureUser: async () => {
+    let { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      const { data, error } = await sb.auth.signInAnonymously();
+      if (error) throw error;
+      session = data.session;
+    }
+    return session.user.id;
+  },
+  /** Load this user's saved tips, shaped like DB.tips entries */
+  loadMyTips: async () => {
+    const uid = await API.ensureUser();
+    const { data, error } = await sb.from('tips').select('fixture_id, home, away, joker').eq('user_id', uid);
+    if (error) throw error;
+    return data.map(r => ({ userId: DB.currentUserId, fixtureId: String(r.fixture_id), home: r.home, away: r.away, joker: r.joker }));
+  },
+  /** Upsert one row per fixture; the database rejects it once the round has locked */
+  saveTips: async (tips, joker) => {
+    const uid = await API.ensureUser();
+    const rows = Object.entries(tips).map(([fixtureId, t]) => ({ user_id: uid, fixture_id: Number(fixtureId), home: t.home, away: t.away, joker }));
+    const { error } = await sb.from('tips').upsert(rows, { onConflict: 'user_id,fixture_id' });
+    if (error) throw error;
+    Object.assign(state.tips, tips); state.joker = joker;
+    return true;
+  }
 };
 
 /* ---------- 3. State & helpers ---------- */
@@ -220,9 +260,10 @@ function scoreTip(tip, res, joker = false) {
 
 /** Completed fixtures joined with the user's tip + points */
 function myResults() {
-  return API.getResults().map(r => {
-    const f = fixture(r.fixtureId), t = API.getMyTips().find(t => t.fixtureId === r.fixtureId);
-    return { fixture: f, result: r, tip: t, ...scoreTip(t, r) };
+  const mine = API.getMyTips();
+  return API.getResults().flatMap(r => {
+    const t = mine.find(t => t.fixtureId === r.fixtureId);
+    return t ? [{ fixture: fixture(r.fixtureId), result: r, tip: t, ...scoreTip(t, r) }] : [];
   });
 }
 const myPosition = () => sortedBoard().findIndex(r => r.userId === DB.currentUserId) + 1;
@@ -429,7 +470,8 @@ async function submitTips() {
     draft[f.id] = { home: +h, away: +a };
   }
   if (isLocked()) return toast('Tips are locked');
-  await API.saveTips(draft, state.joker);
+   try { await API.saveTips(draft, state.joker); }
+  catch (err) { console.error('Could not save tips:', err); return toast('Couldn’t save your tips. Please try again.'); }
   const was = state.submitted; state.submitted = true;
   renderFixtures(); toast(was ? 'Predictions updated' : 'Predictions submitted');
   DB.activity.unshift({ icon: 'fa-pen', text: `You ${was ? 'updated' : 'submitted'} your GW${DB.competition.gameweek} tips`, time: 'just now' });
@@ -631,7 +673,8 @@ async function init() {
     $('#app').innerHTML = '<p class="note" style="padding:24px">Couldn’t load fixtures. Please refresh to try again.</p>';
     return;
   }
-
+  try { applySavedTips(await API.loadMyTips()); }
+  catch (err) { console.warn('Saved tips unavailable, continuing with sample data:', err); }
   renderDashboard(); renderFixtures(); renderLeaderboard(); renderResults(); renderStats(); renderUpcoming(); renderTable(); renderAllTips();
   bindInteractions();
   tickCountdown(); setInterval(tickCountdown, 1000);
