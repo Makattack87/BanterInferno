@@ -72,7 +72,6 @@
     <section id="leaderboard" class="view" hidden aria-labelledby="h-lb">
       <div class="section-head">
         <h2 id="h-lb">Leaderboard</h2>
-        <button class="btn btn--ghost" id="simBtn"><i class="fa-solid fa-bolt"></i> Simulate live update</button>
       </div>
       <div class="seg" role="tablist">
         <button class="seg__btn on" data-tab="players" data-group="lb">Players</button>
@@ -81,7 +80,7 @@
       <div data-panel="players" data-group="lb"><div class="card card--flush"><ol class="table" id="lbTable"></ol></div></div>
       <div data-panel="pl" data-group="lb" hidden>
         <div class="card card--flush" id="plTable"></div>
-        <p class="note"><span class="zone zone--ucl"></span> Top 4 &nbsp; <span class="zone zone--rel"></span> Bottom 3. Snapshot after 10 matches each; connect a results API to keep it live.</p>
+                <p class="note"><span class="zone zone--ucl"></span> Top 4 &nbsp; <span class="zone zone--rel"></span> Bottom 3. Snapshot after 10 matches each (GW10). Not updated automatically.</p>
       </div>
     </section>
 
@@ -95,7 +94,7 @@
         <button class="seg__btn on" data-tab="mine" data-group="rs">My results</button>
         <button class="seg__btn" data-tab="everyone" data-group="rs">Everyone's tips</button>
       </div>
-      <div data-panel="mine" data-group="rs"><div id="resultsList"></div><p class="note">GW9–10 results are sample data.</p></div>
+            <div data-panel="mine" data-group="rs"><div id="resultsList"></div></div>
       <div data-panel="everyone" data-group="rs" hidden><div class="pills" id="gwPills"></div><div id="allTips"></div></div>
     </section>
 
