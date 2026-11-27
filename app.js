@@ -62,98 +62,13 @@ const THEMES = {
   SWI: { b: '#D71920', a: '#ffffff', t: '#8a0f14' }
 };
 
-/* Fixture feed: "gameweek kickoff(UTC) home away [homeGoals awayGoals]". GW11+ are the real schedule;
-   GW9-10 are SAMPLE results so the Results/Tips pages have history. Replace with an API later. */
-const FEED = `
-9 2026-10-31T15:00Z BHA FUL 3 0
-9 2026-10-31T17:30Z MUN LEE 1 1
-9 2026-11-01T14:00Z EVE NFO 2 1
-9 2026-11-01T16:30Z CRY BRE 0 2
-10 2026-11-07T15:00Z LIV CHE 2 1
-10 2026-11-07T17:30Z MCI BOU 3 1
-10 2026-11-08T14:00Z NEW AVL 1 1
-10 2026-11-08T16:30Z ARS TOT 2 0
-11 2026-11-21T12:30Z MCI FUL
-11 2026-11-21T15:00Z TOT IPS
-11 2026-11-21T15:00Z COV CRY
-11 2026-11-21T15:00Z CHE LEE
-11 2026-11-21T15:00Z AVL SUN
-11 2026-11-21T15:00Z BOU NFO
-11 2026-11-21T17:30Z NEW ARS
-11 2026-11-22T14:00Z HUL BHA
-11 2026-11-22T16:30Z LIV MUN
-11 2026-11-23T20:00Z BRE EVE
-12 2026-11-27T20:00Z NFO CHE
-12 2026-11-28T15:00Z MUN BRE
-12 2026-11-28T15:00Z LEE COV
-12 2026-11-28T17:30Z IPS AVL
-12 2026-11-29T12:00Z EVE LIV
-12 2026-11-29T14:05Z SUN TOT
-12 2026-11-29T14:05Z FUL BOU
-12 2026-11-29T14:05Z CRY HUL
-12 2026-11-29T14:05Z BHA NEW
-12 2026-11-29T16:30Z ARS MCI
-13 2026-12-01T20:00Z COV IPS
-13 2026-12-02T19:30Z MCI LEE
-13 2026-12-02T19:30Z CHE CRY
-13 2026-12-02T19:30Z LIV SUN
-13 2026-12-02T19:30Z HUL NFO
-13 2026-12-02T20:15Z NEW MUN
-13 2026-12-02T20:15Z BRE ARS
-13 2026-12-02T20:15Z AVL EVE
-13 2026-12-02T20:15Z BOU BHA
-13 2026-12-03T20:00Z TOT FUL
-14 2026-12-05T12:30Z CHE LIV
-14 2026-12-05T15:00Z LEE IPS
-14 2026-12-05T15:00Z BOU HUL
-14 2026-12-05T15:00Z AVL CRY
-14 2026-12-05T15:00Z MUN COV
-14 2026-12-05T17:30Z NFO BHA
-14 2026-12-05T20:00Z BRE MCI
-14 2026-12-06T14:00Z NEW SUN
-14 2026-12-06T14:00Z EVE FUL
-14 2026-12-06T16:30Z TOT ARS
-15 2026-12-12T15:00Z LIV LEE
-15 2026-12-12T15:00Z FUL BRE
-15 2026-12-12T15:00Z IPS NEW
-15 2026-12-12T17:30Z MCI CHE
-15 2026-12-13T14:00Z SUN NFO
-15 2026-12-13T14:00Z BHA EVE
-15 2026-12-13T14:00Z ARS BOU
-15 2026-12-13T16:30Z COV AVL
-15 2026-12-13T19:00Z CRY MUN
-15 2026-12-14T20:00Z HUL TOT
-16 2026-12-19T12:30Z BRE NEW
-16 2026-12-19T15:00Z LEE FUL
-16 2026-12-19T15:00Z BOU COV
-16 2026-12-19T15:00Z MCI HUL
-16 2026-12-19T17:30Z LIV TOT
-16 2026-12-20T14:00Z SUN CRY
-16 2026-12-20T14:00Z NFO EVE
-16 2026-12-20T14:00Z BHA IPS
-16 2026-12-20T16:30Z ARS MUN
-16 2026-12-21T20:00Z CHE AVL
-17 2026-12-26T12:30Z AVL LEE
-17 2026-12-26T15:00Z TOT BOU
-17 2026-12-26T15:00Z EVE SUN
-17 2026-12-26T15:00Z IPS BRE
-17 2026-12-26T15:00Z FUL BHA
-17 2026-12-26T17:30Z HUL LIV
-17 2026-12-26T20:00Z NEW MCI
-17 2026-12-27T14:00Z COV CHE
-17 2026-12-27T16:30Z MUN NFO
-17 2026-12-27T19:00Z CRY ARS
-18 2026-12-29T19:30Z HUL LEE
-18 2026-12-29T19:30Z TOT BHA
-18 2026-12-29T20:15Z EVE MCI
-18 2026-12-30T19:30Z NEW NFO
-18 2026-12-30T19:30Z MUN SUN
-18 2026-12-30T19:30Z FUL ARS
-18 2026-12-30T19:30Z CRY BOU
-18 2026-12-30T19:30Z COV BRE
-18 2026-12-30T20:15Z IPS CHE
-18 2026-12-30T20:15Z AVL LIV`;
-
+/** Open round = first gameweek whose first kick-off is still in the future (falls back to the last round) */
+function currentGameweek() {
+  const first = {};
+  DB.fixtures.forEach(f => first[f.gw] = Math.min(first[f.gw] ?? Infinity, Date.parse(f.kickoff)));
+  const gws = Object.keys(first).map(Number).sort((a, b) => a - b);
+  return gws.find(g => first[g] > Date.now()) ?? gws[gws.length - 1];
+}
 function hydrateFromFixtures() {
   const gw = DB.competition.gameweek;
   DB.competition.deadline = Math.min(...DB.fixtures.filter(f => f.gw === gw).map(f => Date.parse(f.kickoff)));
@@ -238,9 +153,8 @@ const API = {
 };
 
 /* ---------- 3. State & helpers ---------- */
-const state = { view: 'dashboard', tips: {}, submitted: false, joker: false, skip: 0, tipsGw: null, team: null };
-/** App clock (the demo button can fast-forward it) */
-const now = () => Date.now() + state.skip;
+const state = { view: 'dashboard', tips: {}, submitted: false, joker: false, tipsGw: null, team: null };
+const now = () => Date.now();
 const $ = (s, el = document) => el.querySelector(s);
 const user = id => DB.users.find(u => u.id === id);
 const fixture = id => DB.fixtures.find(f => f.id === id);
@@ -496,12 +410,6 @@ function renderLeaderboard(animate = false) {
     el.classList.add('pop');
   });
 }
-/** Demo: random points arrive, ranks re-sort with animation */
-function simulateUpdate() {
-  DB.leaderboard.forEach(r => { r.prev = sortedBoard().findIndex(x => x.userId === r.userId) + 1; });
-  DB.leaderboard.forEach(r => { const add = Math.floor(Math.random() * 7); r.weekly += add; r.total += add; });
-  renderLeaderboard(true); renderDashboard(); toast('Leaderboard updated');
-}
 
 /* ---------- 8. Results ---------- */
 function renderResults() {
@@ -531,9 +439,9 @@ function renderStats() {
   const nm = r => `${DB.teams[r.fixture.home].name} ${r.result.home}–${r.result.away} ${DB.teams[r.fixture.away].name}`;
   const top3 = DB.season.me.map((v, i) => [v, i + 1]).sort((a, b) => b[0] - a[0]).slice(0, 3).map(([v, g]) => `GW${g}: ${v} pts`).join('<br>');
   $('#statCards').innerHTML =
-    stat('fa-bullseye', 'Exact scores', exact, 'in the last 2 rounds', { detail: rows.filter(r => r.kind === 'exact').map(nm).join('<br>') || 'None yet' }) +
+    stat('fa-bullseye', 'Exact scores', exact, 'so far this season', { detail: rows.filter(r => r.kind === 'exact').map(nm).join('<br>') || 'None yet' }) +
     stat('fa-fire', 'Highest scoring round', `${best} pts`, `Gameweek ${bestGw}`, { detail: top3 }) +
-    stat('fa-percent', 'Correct results', `${Math.round(right / rows.length * 100)}%`, `${right} of ${rows.length} tips`, { detail: `Exact ${exact} · Result only ${right - exact} · Miss ${rows.length - right}` }) +
+    stat('fa-percent', 'Correct results', `${rows.length ? Math.round(right / rows.length * 100) : 0}%`, `${right} of ${rows.length} tips`, { detail: `Exact ${exact} · Result only ${right - exact} · Miss ${rows.length - right}` }) +
     stat('fa-bolt', 'Current streak', streak, 'correct in a row', { detail: streak ? `Your last ${streak} tip${streak > 1 ? 's' : ''} scored points.` : 'Streak broken. Your next tip starts a new one.' });
 }
 /** Hand-rolled SVG line chart: me vs league average */
@@ -587,7 +495,10 @@ function renderTable() {
 /** Everyone's tips: hidden per match until kick-off, then revealed (coloured once a result exists) */
 function renderAllTips() {
   const c = DB.competition.gameweek, me = DB.currentUserId;
-  if (state.tipsGw == null) state.tipsGw = c;
+   if (state.tipsGw == null) {
+    const started = DB.fixtures.filter(f => Date.parse(f.kickoff) <= Date.now()).map(f => f.gw);
+    state.tipsGw = started.length ? Math.max(...started) : c;   // open on the latest round that has kicked off
+  }
   const gws = [...new Set(DB.fixtures.filter(f => f.gw <= c).map(f => f.gw))].sort((a, b) => b - a);
   $('#gwPills').innerHTML = gws.map(g => `<button class="pill ${g === state.tipsGw ? 'on' : ''}" data-gw="${g}">GW${g}</button>`).join('');
   const res = Object.fromEntries(API.getResults().map(r => [r.fixtureId, r]));
@@ -602,14 +513,6 @@ function renderAllTips() {
     }).join('');
     return `<article class="card at">${head}<div class="at__chips">${chips}</div></article>`;
   }).join('');
-}
-
-/** Demo: fast-forward the app clock to 90 min after the first kick-off (and back) */
-function toggleKickoffDemo() {
-  state.skip = state.skip ? 0 : DB.competition.deadline - Date.now() + 90 * 60000;
-  $('#skipBtn').innerHTML = `<i class="fa-solid fa-forward"></i> ${state.skip ? 'Demo: reset clock' : 'Demo: jump to kick-off'}`;
-  renderFixtures(); renderAllTips(); renderJoker(); renderDashboard(); tickCountdown();
-  toast(state.skip ? 'Clock moved past first kick-off' : 'Clock reset');
 }
 
 /* ---------- 9c. Club colours ---------- */
@@ -665,6 +568,7 @@ async function init() {
 
   try {
     await API.loadFixtures();
+   DB.competition.gameweek = currentGameweek();
     if (!API.getFixtures(DB.competition.gameweek).length) throw new Error(`No fixtures for GW${DB.competition.gameweek}`);
     hydrateFromFixtures();
   } catch (err) {
@@ -680,7 +584,6 @@ async function init() {
 
   $('#submitBtn').onclick = submitTips;
   $('#teamFilter').onchange = renderUpcoming;
-  $('#simBtn').onclick = simulateUpdate;
   $('#jokerBtn').onclick = () => { state.joker = !state.joker; renderJoker(); toast(state.joker ? 'Joker armed for this round' : 'Joker removed'); };
   document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleClubMenu(false); });
   window.addEventListener('hashchange', () => go(location.hash.slice(1)));
