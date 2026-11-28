@@ -110,15 +110,37 @@
   <div class="toast" id="toast" role="status"></div>
 
   <!-- Join the league (shown until the player has a profile) -->
-  <dialog id="joinDlg" class="join" aria-labelledby="joinTitle">
-    <h2 id="joinTitle">Join the league</h2>
-    <p class="note">Pick the name that will show on the leaderboard and enter the league code.</p>
-    <label for="joinName">Display name</label>
-    <input id="joinName" maxlength="20" autocomplete="nickname">
-    <label for="joinCode">League code</label>
-    <input id="joinCode" autocomplete="off">
-    <p class="err" id="joinErr" role="alert"></p>
-    <button class="btn" id="joinBtn" type="button">Join</button>
+  <dialog id="joinDlg" class="join" aria-labelledby="joinTitle" aria-describedby="joinLead">
+    <div class="join__hero">
+      <span class="join__logo"><i class="fa-solid fa-futbol"></i></span>
+      <h2 id="joinTitle">Join Top Bins</h2>
+      <p id="joinLead">Tip every Premier League score, climb the table and earn the bragging rights.</p>
+    </div>
+    <div class="join__body">
+      <div class="join__field" id="joinNameField">
+        <label for="joinName">Display name <span class="join__count" id="joinCount">0/20</span></label>
+        <input id="joinName" maxlength="20" autofocus autocomplete="nickname" autocapitalize="words" enterkeyhint="next" placeholder="Pick a name for the table" aria-describedby="joinNameHelp joinNameErr">
+        <p class="join__help" id="joinNameHelp">This is the name everyone sees on the leaderboard.</p>
+        <p class="join__err" id="joinNameErr" role="alert"></p>
+      </div>
+      <div class="join__field" id="joinCodeField">
+        <label for="joinCode">League code</label>
+        <input id="joinCode" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Ask whoever invited you" aria-describedby="joinCodeErr">
+        <p class="join__err" id="joinCodeErr" role="alert"></p>
+      </div>
+      <div class="join__field">
+        <label for="joinClub">Favourite club <span class="join__opt">optional</span></label>
+        <select id="joinClub"></select>
+      </div>
+      <p class="join__err" id="joinErr" role="alert"></p>
+      <button class="btn join__go" id="joinBtn" type="button" disabled>Join the league</button>
+      <ul class="join__rules" aria-label="How scoring works">
+        <li><b>3</b><span>exact score</span></li>
+        <li><b>1</b><span>right result</span></li>
+        <li><b>×2</b><span>Joker round</span></li>
+      </ul>
+      <p class="join__foot">Your account lives in this browser for now, so keep using it to hold on to your tips.</p>
+    </div>
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
